@@ -9,6 +9,7 @@ import android.graphics.Rect;
 import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,6 +40,7 @@ import com.example.secureqr.databinding.FragmentHomeBinding;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.BarcodeScanning;
+import com.google.mlkit.vision.common.InputImage;
 import com.gun0912.tedpermission.PermissionListener;
 import com.gun0912.tedpermission.normal.TedPermission;
 
@@ -115,13 +117,12 @@ public class HomeFragment extends Fragment {
                         .setTargetAspectRatio(aspectRatio)
                         //.setTargetRotation(previewView.getDisplay().getRotation())
                         .build();
-
                 imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor(),
                         (imageProxy) -> processImageProxy(imageProxy, barcodeScanner)
                 );
 
                 cameraProvider.unbindAll();
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview);
+                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
                 preview.setSurfaceProvider(previewView.getSurfaceProvider());
             } catch (ExecutionException | InterruptedException | CameraInfoUnavailableException e) {
                 e.printStackTrace();
@@ -130,7 +131,11 @@ public class HomeFragment extends Fragment {
     }
 
     private static void processImageProxy(ImageProxy imageProxy, BarcodeScanner barcodeScanner) {
-
+        InputImage inputImage = InputImage.fromMediaImage(imageProxy.getImage(), imageProxy.getImageInfo().getRotationDegrees());
+        barcodeScanner.process(inputImage)
+                .addOnSuccessListener((barcodes) -> barcodes.forEach((barcode) -> Log.i("SecureQR", barcode.getRawValue())))
+                .addOnFailureListener((e) -> e.printStackTrace())
+                .addOnCompleteListener((task) -> imageProxy.close());
     }
 
     private static int getAspectRatio(int width, int height) {
