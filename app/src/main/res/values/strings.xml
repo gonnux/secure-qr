@@ -3,4 +3,5 @@
     <string name="title_scanner">Scanner</string>
     <string name="title_editor">Editor</string>
     <string name="qr_code_image">QR Code Image</string>
+    <string name="password_edit_hint">Enter Password</string>
 </resources>

@@ -1,4 +1,4 @@
-package com.example.secureqr;
+package com.gonnux.secureqr;
 
 import org.junit.Test;
 

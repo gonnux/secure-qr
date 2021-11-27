@@ -1,4 +1,4 @@
-package com.example.secureqr;
+package com.gonnux.secureqr;
 
 import android.content.Context;
 
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
     public void useAppContext() {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        assertEquals("com.example.secureqr", appContext.getPackageName());
+        assertEquals("com.gonnux.secureqr", appContext.getPackageName());
     }
 }

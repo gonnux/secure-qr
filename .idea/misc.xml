@@ -5,6 +5,7 @@
       <map>
         <entry key="app/src/main/res/drawable-anydpi/camera.xml" value="0.371875" />
         <entry key="app/src/main/res/drawable-v24/ic_launcher_foreground.xml" value="0.371875" />
+        <entry key="app/src/main/res/drawable/ic_baseline_camera_alt_24.xml" value="0.371875" />
         <entry key="app/src/main/res/drawable/ic_baseline_qr_code_24.xml" value="0.371875" />
         <entry key="app/src/main/res/drawable/ic_dashboard_black_24dp.xml" value="0.371875" />
         <entry key="app/src/main/res/drawable/ic_home_black_24dp.xml" value="0.371875" />

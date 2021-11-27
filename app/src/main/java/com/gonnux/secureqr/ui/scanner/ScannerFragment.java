@@ -1,4 +1,4 @@
-package com.example.secureqr.ui.scanner;
+package com.gonnux.secureqr.ui.scanner;
 
 import android.Manifest;
 import android.content.Context;
@@ -27,9 +27,9 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
-import com.example.secureqr.R;
-import com.example.secureqr.databinding.FragmentScannerBinding;
-import com.example.secureqr.ui.editor.EditorViewModel;
+import com.gonnux.secureqr.R;
+import com.gonnux.secureqr.databinding.FragmentScannerBinding;
+import com.gonnux.secureqr.ui.editor.EditorViewModel;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.BarcodeScanning;

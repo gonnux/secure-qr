@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.secureqr">
+    package="com.gonnux.secureqr">
 
     <uses-sdk tools:overrideLibrary="
       androidx.camera.camera2, androidx.camera.core,
@@ -23,7 +23,7 @@
             android:value="@integer/google_play_services_version"/>
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.gonnux.secureqr.MainActivity"
             android:exported="true"
             android:label="@string/app_name">
             <intent-filter>
