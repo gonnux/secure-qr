@@ -1,28 +1,20 @@
-package com.example.secureqr.ui.home;
-
-import static androidx.core.content.ContextCompat.getSystemService;
+package com.example.secureqr.ui.scanner;
 
 import android.Manifest;
 import android.content.Context;
-import android.graphics.Camera;
 import android.graphics.Rect;
-import android.media.Image;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.AspectRatio;
 import androidx.camera.core.CameraInfoUnavailableException;
-import androidx.camera.core.CameraProvider;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
@@ -31,12 +23,13 @@ import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 
-import com.example.secureqr.MainActivity;
 import com.example.secureqr.R;
-import com.example.secureqr.databinding.FragmentHomeBinding;
+import com.example.secureqr.databinding.FragmentScannerBinding;
+import com.example.secureqr.ui.editor.EditorViewModel;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.BarcodeScanning;
@@ -48,33 +41,25 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
-public class HomeFragment extends Fragment {
+public class ScannerFragment extends Fragment {
 
-    private HomeViewModel homeViewModel;
-    private FragmentHomeBinding binding;
+    private FragmentScannerBinding binding;
     private ProcessCameraProvider cameraProvider;
+    private EditorViewModel editorViewModel;
+    private NavController navController;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        homeViewModel =
-                new ViewModelProvider(this).get(HomeViewModel.class);
-
-        binding = FragmentHomeBinding.inflate(inflater, container, false);
+        binding = FragmentScannerBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
-
-        final TextView textView = binding.textHome;
-        homeViewModel.getText().observe(getViewLifecycleOwner(), new Observer<String>() {
-            @Override
-            public void onChanged(@Nullable String s) {
-                textView.setText(s);
-            }
-        });
+        editorViewModel = new ViewModelProvider(requireActivity()).get(EditorViewModel.class);
         return root;
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        navController = Navigation.findNavController(view);
         setupCamera(binding.previewView);
     }
 
@@ -82,7 +67,7 @@ public class HomeFragment extends Fragment {
         TedPermission.create().setPermissionListener(new PermissionListener() {
             @Override
             public void onPermissionGranted() {
-                Toast.makeText(requireActivity(), "Permission Granted", Toast.LENGTH_LONG).show();
+                Log.i("SecureQR", "Permission Granted");
             }
 
             @Override
@@ -130,12 +115,19 @@ public class HomeFragment extends Fragment {
         }, ContextCompat.getMainExecutor(requireContext()));
     }
 
-    private static void processImageProxy(ImageProxy imageProxy, BarcodeScanner barcodeScanner) {
+    private void processImageProxy(ImageProxy imageProxy, BarcodeScanner barcodeScanner) {
         InputImage inputImage = InputImage.fromMediaImage(imageProxy.getImage(), imageProxy.getImageInfo().getRotationDegrees());
         barcodeScanner.process(inputImage)
-                .addOnSuccessListener((barcodes) -> barcodes.forEach((barcode) -> Log.i("SecureQR", barcode.getRawValue())))
-                .addOnFailureListener((e) -> e.printStackTrace())
-                .addOnCompleteListener((task) -> imageProxy.close());
+        .addOnSuccessListener((barcodes) -> {
+            barcodes.stream().findFirst().ifPresent((barcode) -> {
+                editorViewModel.setData(barcode.getRawValue());
+                navController.navigate(R.id.navigation_editor);
+            });
+        })
+        .addOnFailureListener((e) -> e.printStackTrace())
+        .addOnCompleteListener((task) -> {
+            imageProxy.close();
+        });
     }
 
     private static int getAspectRatio(int width, int height) {
