@@ -28,6 +28,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
 import com.gonnux.secureqr.R;
+import com.gonnux.secureqr.biz.CipherText;
 import com.gonnux.secureqr.databinding.FragmentScannerBinding;
 import com.gonnux.secureqr.ui.editor.EditorViewModel;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -120,7 +121,12 @@ public class ScannerFragment extends Fragment {
         barcodeScanner.process(inputImage)
         .addOnSuccessListener((barcodes) -> {
             barcodes.stream().findFirst().ifPresent((barcode) -> {
-                editorViewModel.setData(barcode.getRawValue());
+                String data = barcode.getRawValue();
+                try {
+                    CipherText.decode(data);
+                    editorViewModel.setSecureQrMode(true);
+                } catch (IllegalArgumentException e) {}
+                editorViewModel.setEncodedData(data);
                 navController.navigate(R.id.navigation_editor);
             });
         })

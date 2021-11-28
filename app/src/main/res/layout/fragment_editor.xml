@@ -37,19 +37,6 @@
         app:layout_constraintTop_toBottomOf="@+id/frameLayout" />
 
     <EditText
-        android:id="@+id/qrCodeDataEdit"
-        android:layout_width="0dp"
-        android:layout_height="175dp"
-        android:layout_marginTop="8dp"
-        android:ems="10"
-        android:gravity="start|top"
-        android:inputType="textMultiLine"
-        app:layout_constraintEnd_toEndOf="@+id/passwordEdit"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="@+id/secureQrModeSwitch"
-        app:layout_constraintTop_toBottomOf="@id/secureQrModeSwitch" />
-
-    <EditText
         android:id="@+id/passwordEdit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -57,22 +44,58 @@
         android:ems="10"
         android:hint="@string/password_edit_hint"
         android:inputType="textPassword"
+        android:minHeight="48dp"
         app:layout_constraintBottom_toBottomOf="@+id/secureQrModeSwitch"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/secureQrModeSwitch"
         app:layout_constraintTop_toTopOf="@+id/secureQrModeSwitch"
         app:layout_constraintVertical_bias="0.0" />
 
-    <Button
-        android:id="@+id/generateQrButton"
+    <ScrollView
+        android:id="@+id/scrollView"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="Genrate QR Code"
-        app:layout_constraintBottom_toBottomOf="@+id/qrCodeImage"
-        app:layout_constraintEnd_toEndOf="@+id/qrCodeDataEdit"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="@+id/qrCodeDataEdit"
-        app:layout_constraintTop_toBottomOf="@+id/qrCodeDataEdit"
-        app:layout_constraintVertical_bias="0.042" />
+        android:layout_height="271dp"
+        android:layout_marginTop="20dp"
+        app:layout_constraintEnd_toEndOf="@+id/passwordEdit"
+        app:layout_constraintStart_toStartOf="@+id/secureQrModeSwitch"
+        app:layout_constraintTop_toBottomOf="@+id/secureQrModeSwitch">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <EditText
+                android:id="@+id/qrCodeDataEdit"
+                android:layout_width="match_parent"
+                android:layout_height="175dp"
+                android:layout_marginTop="8dp"
+                android:ems="10"
+                android:gravity="start|top"
+                android:hint="@string/qr_code_data"
+                android:inputType="textMultiLine" />
+
+            <TextView
+                android:id="@+id/encodedQrCodeDataText"
+                android:layout_width="match_parent"
+                android:layout_height="175dp"
+                android:ems="10"
+                android:gravity="start|top"
+                android:hint="@string/encoded_qr_code_data"
+                />
+
+            <Button
+                android:id="@+id/encodeQrButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/encode_qr_code_button" />
+
+            <Button
+                android:id="@+id/decodeQrButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/decode_qr_code_button" />
+        </LinearLayout>
+    </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

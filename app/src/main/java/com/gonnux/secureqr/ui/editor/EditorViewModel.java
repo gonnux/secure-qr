@@ -6,14 +6,23 @@ import androidx.lifecycle.ViewModel;
 
 public class EditorViewModel extends ViewModel {
 
-    private MutableLiveData<String> data;
     private MutableLiveData<Boolean> secureQrMode;
+    private MutableLiveData<String> data;
+    private MutableLiveData<String> encodedData;
 
     public EditorViewModel() {
-        data = new MutableLiveData<>();
-        data.setValue("SecureQR");
         secureQrMode = new MutableLiveData<>();
         secureQrMode.setValue(false);
+        data = new MutableLiveData<>();
+        encodedData = new MutableLiveData<>();
+    }
+
+    public LiveData<Boolean> getSecureQrMode() {
+        return secureQrMode;
+    }
+
+    public void setSecureQrMode(Boolean value) {
+        secureQrMode.setValue(value);
     }
 
     public LiveData<String> getData() {
@@ -24,11 +33,11 @@ public class EditorViewModel extends ViewModel {
         data.setValue(value);
     }
 
-    public LiveData<Boolean> getSecureQrMode() {
-        return secureQrMode;
+    public LiveData<String> getEncodedData() {
+        return encodedData;
     }
 
-    public void setSecureQrMode(Boolean value) {
-        secureQrMode.setValue(value);
+    public void setEncodedData(String value) {
+        encodedData.setValue(value);
     }
 }
