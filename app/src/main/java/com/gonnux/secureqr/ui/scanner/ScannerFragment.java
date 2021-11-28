@@ -120,7 +120,7 @@ public class ScannerFragment extends Fragment {
         InputImage inputImage = InputImage.fromMediaImage(imageProxy.getImage(), imageProxy.getImageInfo().getRotationDegrees());
         barcodeScanner.process(inputImage)
         .addOnSuccessListener((barcodes) -> {
-            barcodes.stream().findFirst().ifPresent((barcode) -> {
+            barcodes.stream().filter(barcode -> true).findFirst().ifPresent((barcode) -> {
                 String data = barcode.getRawValue();
                 try {
                     CipherText.decode(data);

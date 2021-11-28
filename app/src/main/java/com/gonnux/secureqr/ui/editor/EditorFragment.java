@@ -1,11 +1,16 @@
 package com.gonnux.secureqr.ui.editor;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -46,7 +51,6 @@ public class EditorFragment extends Fragment {
             if (!editorViewModel.getSecureQrMode().getValue()) {
                 editorViewModel.setData(encodedData);
             }
-
             try {
                 BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
                 Bitmap bitmap = barcodeEncoder.encodeBitmap(encodedData, BarcodeFormat.QR_CODE, 200, 200);
@@ -54,6 +58,15 @@ public class EditorFragment extends Fragment {
             } catch (WriterException e) {
                 Log.e("SecureQR", e.getMessage());
             }
+        });
+
+        binding.qrCodeImage.setOnClickListener((view) -> {
+            Bitmap image = ((BitmapDrawable) ((ImageView) view).getDrawable()).getBitmap();
+            String imageUri = MediaStore.Images.Media.insertImage(requireActivity().getContentResolver(), image, "SecureQr", "QR Code");
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType("image/*");
+            share.putExtra(Intent.EXTRA_STREAM, Uri.parse(imageUri));
+            startActivity(Intent.createChooser(share,"Share via"));
         });
 
         binding.secureQrModeSwitch.setOnCheckedChangeListener((compoundButton, checked) -> {
