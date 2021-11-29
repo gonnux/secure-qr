@@ -3,6 +3,7 @@ package com.gonnux.secureqr.ui.scanner;
 import android.Manifest;
 import android.content.Context;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -20,7 +21,6 @@ import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
-import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -32,6 +32,7 @@ import com.gonnux.secureqr.biz.CipherText;
 import com.gonnux.secureqr.databinding.FragmentScannerBinding;
 import com.gonnux.secureqr.ui.editor.EditorViewModel;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.mlkit.vision.barcode.Barcode;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.BarcodeScanning;
 import com.google.mlkit.vision.common.InputImage;
@@ -45,9 +46,10 @@ import java.util.concurrent.Executors;
 public class ScannerFragment extends Fragment {
 
     private FragmentScannerBinding binding;
-    private ProcessCameraProvider cameraProvider;
     private EditorViewModel editorViewModel;
     private NavController navController;
+    private RectF qrCodeScanArea;
+    private RectF previewArea;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -61,10 +63,10 @@ public class ScannerFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         navController = Navigation.findNavController(view);
-        setupCamera(binding.previewView);
+        binding.previewView.post(this::setupCamera);
     }
 
-    private void setupCamera(PreviewView previewView) {
+    private void requirePermission() {
         TedPermission.create().setPermissionListener(new PermissionListener() {
             @Override
             public void onPermissionGranted() {
@@ -76,51 +78,85 @@ public class ScannerFragment extends Fragment {
                 Toast.makeText(requireActivity(), "Permission Denied\n" + deniedPermissions.toString(), Toast.LENGTH_SHORT).show();
             }
         }).setDeniedMessage("Permissions are denied")
-                .setPermissions(Manifest.permission.CAMERA)
-                .check();
+        .setPermissions(Manifest.permission.CAMERA)
+        .check();
+    }
+
+    private void printRect(String tag, RectF rect) {
+        Log.i(tag, "left: " + rect.left + " top: " + rect.top + " right: " + rect.right + " bottom: " + rect.bottom + " width: " + rect.width() + " height: " + rect.height());
+    }
+
+    private void setupCamera() {
+        requirePermission();
+        qrCodeScanArea = getViewArea(binding.qrCodeScanArea);
+        previewArea = getViewArea(binding.previewView);
+        int rotation = binding.previewView.getDisplay().getRotation();
+        int aspectRatio = getAspectRatio();
 
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
         cameraProviderFuture.addListener(() -> {
             try {
-                cameraProvider = cameraProviderFuture.get();
+                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+
                 Integer lensFacing = null;
                 if (cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA))
                     lensFacing = CameraSelector.LENS_FACING_BACK;
                 else if (cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA))
                     lensFacing = CameraSelector.LENS_FACING_FRONT;
+                else
+                    throw new RuntimeException("No Camera");
 
-                WindowManager windowManager = (WindowManager) requireContext().getSystemService(Context.WINDOW_SERVICE);
-                Rect metrics = windowManager.getCurrentWindowMetrics().getBounds();
-                int aspectRatio = getAspectRatio(metrics.width(), metrics.height());
                 CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(lensFacing).build();
+
                 Preview preview = new Preview.Builder()
                         .setTargetAspectRatio(aspectRatio)
-                        //.setTargetRotation(previewView.getDisplay().getRotation())
+                        .setTargetRotation(rotation)
+                        .build();
+
+                ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
+                        .setTargetAspectRatio(aspectRatio)
+                        .setTargetRotation(rotation)
                         .build();
 
                 BarcodeScanner barcodeScanner = BarcodeScanning.getClient();
-                ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
-                        .setTargetAspectRatio(aspectRatio)
-                        //.setTargetRotation(previewView.getDisplay().getRotation())
-                        .build();
+
                 imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor(),
                         (imageProxy) -> processImageProxy(imageProxy, barcodeScanner)
                 );
 
                 cameraProvider.unbindAll();
                 cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
-                preview.setSurfaceProvider(previewView.getSurfaceProvider());
+
+                preview.setSurfaceProvider(binding.previewView.getSurfaceProvider());
+
             } catch (ExecutionException | InterruptedException | CameraInfoUnavailableException e) {
                 e.printStackTrace();
             }
         }, ContextCompat.getMainExecutor(requireContext()));
     }
 
+    private RectF getBarcodeArea(ImageProxy imageProxy, Barcode barcode) {
+        RectF rect = new RectF(barcode.getBoundingBox());
+        float scaleFactorY = previewArea.height() / imageProxy.getWidth();
+        float scaleFactorX = previewArea.width() / imageProxy.getHeight();
+
+        float newLeft = rect.left * scaleFactorX;
+        float newTop = rect.top * scaleFactorY + previewArea.top;
+        float newRight = rect.right * scaleFactorX;
+        float newBottom = rect.bottom * scaleFactorY + previewArea.top;
+
+        return new RectF(newLeft, newTop, newRight, newBottom);
+    }
+
     private void processImageProxy(ImageProxy imageProxy, BarcodeScanner barcodeScanner) {
         InputImage inputImage = InputImage.fromMediaImage(imageProxy.getImage(), imageProxy.getImageInfo().getRotationDegrees());
         barcodeScanner.process(inputImage)
         .addOnSuccessListener((barcodes) -> {
-            barcodes.stream().filter(barcode -> true).findFirst().ifPresent((barcode) -> {
+            barcodes
+            .stream()
+            .filter(barcode -> qrCodeScanArea.contains(getBarcodeArea(imageProxy, barcode)))
+            .findFirst()
+            .ifPresent((barcode) -> {
                 String data = barcode.getRawValue();
                 try {
                     CipherText.decode(data);
@@ -144,6 +180,24 @@ public class ScannerFragment extends Fragment {
             return AspectRatio.RATIO_4_3;
         }
         return AspectRatio.RATIO_16_9;
+    }
+
+    private int getAspectRatio() {
+        WindowManager windowManager = (WindowManager) requireContext().getSystemService(Context.WINDOW_SERVICE);
+        Rect screenArea = windowManager.getCurrentWindowMetrics().getBounds();
+        printRect("ScreenArea", new RectF(screenArea));
+        return getAspectRatio(screenArea.width(), screenArea.height());
+    }
+
+    private static RectF getViewArea(View view) {
+        int[] coords = new int[2];
+        view.getLocationOnScreen(coords);
+        return new RectF(
+                coords[0],
+                coords[1],
+                coords[0] + view.getWidth(),
+                coords[1] + view.getHeight()
+        );
     }
 
     @Override
