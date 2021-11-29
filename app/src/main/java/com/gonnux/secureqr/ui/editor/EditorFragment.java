@@ -6,6 +6,8 @@ import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -48,9 +50,6 @@ public class EditorFragment extends Fragment {
 
         editorViewModel.getEncodedData().observe(getViewLifecycleOwner(), (encodedData) -> {
             binding.encodedQrCodeDataText.setText(encodedData);
-            if (!editorViewModel.getSecureQrMode().getValue()) {
-                editorViewModel.setData(encodedData);
-            }
             try {
                 BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
                 Bitmap bitmap = barcodeEncoder.encodeBitmap(encodedData, BarcodeFormat.QR_CODE, 200, 200);
@@ -71,8 +70,23 @@ public class EditorFragment extends Fragment {
 
         binding.secureQrModeSwitch.setOnCheckedChangeListener((compoundButton, checked) -> {
             editorViewModel.setSecureQrMode(checked);
-            /*binding.qrCodeImage.setImageDrawable(null);
-            editorViewModel.setEncodedData(null);*/
+        });
+
+        binding.passwordEdit.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                binding.encodeQrButton.setEnabled(!editorViewModel.getSecureQrMode().getValue() || editable.length() >= 1);
+            }
         });
 
         binding.encodeQrButton.setOnClickListener((view) -> {

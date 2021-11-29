@@ -90,8 +90,6 @@ public class ScannerFragment extends Fragment {
         requirePermission();
         qrCodeScanArea = getViewArea(binding.qrCodeScanArea);
         previewArea = getViewArea(binding.previewView);
-        int rotation = binding.previewView.getDisplay().getRotation();
-        int aspectRatio = getAspectRatio();
 
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
         cameraProviderFuture.addListener(() -> {
@@ -108,6 +106,9 @@ public class ScannerFragment extends Fragment {
 
                 CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(lensFacing).build();
 
+                int rotation = binding.previewView.getDisplay().getRotation();
+                int aspectRatio = getAspectRatio();
+
                 Preview preview = new Preview.Builder()
                         .setTargetAspectRatio(aspectRatio)
                         .setTargetRotation(rotation)
@@ -120,8 +121,9 @@ public class ScannerFragment extends Fragment {
 
                 BarcodeScanner barcodeScanner = BarcodeScanning.getClient();
 
-                imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor(),
-                        (imageProxy) -> processImageProxy(imageProxy, barcodeScanner)
+                imageAnalysis.setAnalyzer(
+                    Executors.newSingleThreadExecutor(),
+                    (imageProxy) -> processImageProxy(imageProxy, barcodeScanner)
                 );
 
                 cameraProvider.unbindAll();
@@ -136,10 +138,9 @@ public class ScannerFragment extends Fragment {
     }
 
     private RectF getBarcodeArea(ImageProxy imageProxy, Barcode barcode) {
-        RectF rect = new RectF(barcode.getBoundingBox());
         float scaleFactorY = previewArea.height() / imageProxy.getWidth();
         float scaleFactorX = previewArea.width() / imageProxy.getHeight();
-
+        RectF rect = new RectF(barcode.getBoundingBox());
         float newLeft = rect.left * scaleFactorX;
         float newTop = rect.top * scaleFactorY + previewArea.top;
         float newRight = rect.right * scaleFactorX;
@@ -148,28 +149,32 @@ public class ScannerFragment extends Fragment {
         return new RectF(newLeft, newTop, newRight, newBottom);
     }
 
+    private void processBarcode(Barcode barcode){
+        String data = barcode.getRawValue();
+        try {
+            CipherText.decode(data);
+            editorViewModel.setSecureQrMode(true);
+            editorViewModel.setData(null);
+        } catch (IllegalArgumentException e) {
+            editorViewModel.setData(data);
+        }
+        editorViewModel.setEncodedData(data);
+        navController.navigate(R.id.navigation_editor);
+    }
+
     private void processImageProxy(ImageProxy imageProxy, BarcodeScanner barcodeScanner) {
         InputImage inputImage = InputImage.fromMediaImage(imageProxy.getImage(), imageProxy.getImageInfo().getRotationDegrees());
+
         barcodeScanner.process(inputImage)
         .addOnSuccessListener((barcodes) -> {
             barcodes
             .stream()
             .filter(barcode -> qrCodeScanArea.contains(getBarcodeArea(imageProxy, barcode)))
             .findFirst()
-            .ifPresent((barcode) -> {
-                String data = barcode.getRawValue();
-                try {
-                    CipherText.decode(data);
-                    editorViewModel.setSecureQrMode(true);
-                } catch (IllegalArgumentException e) {}
-                editorViewModel.setEncodedData(data);
-                navController.navigate(R.id.navigation_editor);
-            });
+            .ifPresent(this::processBarcode);
         })
         .addOnFailureListener((e) -> e.printStackTrace())
-        .addOnCompleteListener((task) -> {
-            imageProxy.close();
-        });
+        .addOnCompleteListener((task) -> imageProxy.close());
     }
 
     private static int getAspectRatio(int width, int height) {
@@ -185,7 +190,6 @@ public class ScannerFragment extends Fragment {
     private int getAspectRatio() {
         WindowManager windowManager = (WindowManager) requireContext().getSystemService(Context.WINDOW_SERVICE);
         Rect screenArea = windowManager.getCurrentWindowMetrics().getBounds();
-        printRect("ScreenArea", new RectF(screenArea));
         return getAspectRatio(screenArea.width(), screenArea.height());
     }
 
