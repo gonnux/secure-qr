@@ -138,8 +138,8 @@ public class ScannerFragment extends Fragment {
     }
 
     private RectF getBarcodeArea(ImageProxy imageProxy, Barcode barcode) {
-        float scaleFactorY = previewArea.height() / imageProxy.getWidth();
-        float scaleFactorX = previewArea.width() / imageProxy.getHeight();
+        float scaleFactorY = Math.max(previewArea.height(), previewArea.width()) / Math.max(imageProxy.getWidth(), imageProxy.getHeight());
+        float scaleFactorX = Math.min(previewArea.width(), previewArea.height()) / Math.min(imageProxy.getHeight(), imageProxy.getWidth());
         RectF rect = new RectF(barcode.getBoundingBox());
         float newLeft = rect.left * scaleFactorX;
         float newTop = rect.top * scaleFactorY + previewArea.top;
