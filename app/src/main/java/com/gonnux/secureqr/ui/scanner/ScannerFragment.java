@@ -1,10 +1,12 @@
 package com.gonnux.secureqr.ui.scanner;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -40,6 +42,7 @@ import com.gun0912.tedpermission.PermissionListener;
 import com.gun0912.tedpermission.normal.TedPermission;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
@@ -96,7 +99,7 @@ public class ScannerFragment extends Fragment {
             try {
                 ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
 
-                Integer lensFacing = null;
+                int lensFacing;
                 if (cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA))
                     lensFacing = CameraSelector.LENS_FACING_BACK;
                 else if (cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA))
@@ -152,6 +155,7 @@ public class ScannerFragment extends Fragment {
     private void processBarcode(Barcode barcode){
         String data = barcode.getRawValue();
         try {
+            assert data != null;
             CipherText.decode(data);
             editorViewModel.setSecureQrMode(true);
             editorViewModel.setData(null);
@@ -163,18 +167,21 @@ public class ScannerFragment extends Fragment {
     }
 
     private void processImageProxy(ImageProxy imageProxy, BarcodeScanner barcodeScanner) {
-        InputImage inputImage = InputImage.fromMediaImage(imageProxy.getImage(), imageProxy.getImageInfo().getRotationDegrees());
+        @SuppressLint("UnsafeOptInUsageError")
+        InputImage inputImage = InputImage.fromMediaImage(
+            Objects.requireNonNull(imageProxy.getImage()), imageProxy.getImageInfo().getRotationDegrees()
+        );
 
         barcodeScanner.process(inputImage)
-        .addOnSuccessListener((barcodes) -> {
+        .addOnSuccessListener((barcodes) ->
             barcodes
             .stream()
             .filter(barcode -> qrCodeScanArea.contains(getBarcodeArea(imageProxy, barcode)))
             .findFirst()
-            .ifPresent(this::processBarcode);
-        })
-        .addOnFailureListener((e) -> e.printStackTrace())
-        .addOnCompleteListener((task) -> imageProxy.close());
+            .ifPresent(this::processBarcode))
+            .addOnFailureListener(Throwable::printStackTrace)
+            .addOnCompleteListener((task) -> imageProxy.close()
+        );
     }
 
     private static int getAspectRatio(int width, int height) {
@@ -187,9 +194,19 @@ public class ScannerFragment extends Fragment {
         return AspectRatio.RATIO_16_9;
     }
 
-    private int getAspectRatio() {
+    private Rect getScreenArea() {
         WindowManager windowManager = (WindowManager) requireContext().getSystemService(Context.WINDOW_SERVICE);
-        Rect screenArea = windowManager.getCurrentWindowMetrics().getBounds();
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            return windowManager.getCurrentWindowMetrics().getBounds();
+        } else {
+            DisplayMetrics displayMetrics = new DisplayMetrics();
+            windowManager.getDefaultDisplay().getMetrics(displayMetrics);
+            return new Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels);
+        }
+    }
+
+    private int getAspectRatio() {
+        Rect screenArea = getScreenArea();
         return getAspectRatio(screenArea.width(), screenArea.height());
     }
 

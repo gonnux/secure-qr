@@ -1,6 +1,6 @@
 package com.gonnux.secureqr.biz;
 
-import java.util.Base64;
+import android.util.Base64;
 
 public class CipherText {
     private byte[] salt;
@@ -26,16 +26,24 @@ public class CipherText {
     }
 
     public static CipherText decode(String encoded) {
-        Base64.Decoder decoder = Base64.getDecoder();
         String[] pieces = encoded.split("\\.");
 
         if (pieces.length != 4 || !pieces[0].equals("SecureQR"))
             throw new IllegalArgumentException("Invalid CipherText Input");
-        return new CipherText(decoder.decode(pieces[1]), decoder.decode(pieces[2]), decoder.decode(pieces[3]));
+        return new CipherText(
+            Base64.decode(pieces[1], Base64.DEFAULT),
+            Base64.decode(pieces[2], Base64.DEFAULT),
+            Base64.decode(pieces[3], Base64.DEFAULT)
+        );
     }
 
     public String encode() {
-        Base64.Encoder encoder = Base64.getEncoder();
-        return String.join(".", "SecureQR", encoder.encodeToString(salt), encoder.encodeToString(iv), encoder.encodeToString(encryptedData));
+        return String.join(
+            ".",
+            "SecureQR",
+            Base64.encodeToString(salt, Base64.DEFAULT),
+            Base64.encodeToString(iv, Base64.DEFAULT),
+            Base64.encodeToString(encryptedData, Base64.DEFAULT)
+        );
     }
 }
