@@ -154,8 +154,12 @@ public class ScannerFragment extends Fragment {
 
     private void processBarcode(Barcode barcode){
         String data = barcode.getRawValue();
+        // getRawValue()는 QR코드 데이터가 유효한 UTF-8이 아니면 null을 반환한다
+        if (data == null) {
+            Toast.makeText(requireActivity(), "지원하지 않는 QR코드 형식입니다", Toast.LENGTH_SHORT).show();
+            return;
+        }
         try {
-            assert data != null;
             CipherText.decode(data);
             editorViewModel.setSecureQrMode(true);
             editorViewModel.setData(null);
