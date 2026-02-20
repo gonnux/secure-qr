@@ -34,7 +34,7 @@ import com.gonnux.secureqr.biz.CipherText;
 import com.gonnux.secureqr.databinding.FragmentScannerBinding;
 import com.gonnux.secureqr.ui.editor.EditorViewModel;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.mlkit.vision.barcode.Barcode;
+import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.BarcodeScanning;
 import com.google.mlkit.vision.common.InputImage;
