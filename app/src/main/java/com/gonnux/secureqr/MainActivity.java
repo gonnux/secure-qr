@@ -1,8 +1,13 @@
 package com.gonnux.secureqr;
 
 import android.os.Bundle;
+import android.view.View;
 
+import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -21,6 +26,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Edge-to-edge 표시 활성화 (Android 15+ 하위 호환)
+        EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
 
         MobileAds.initialize(this, new OnInitializationCompleteListener() {
@@ -30,6 +37,13 @@ public class MainActivity extends AppCompatActivity {
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // 시스템 바(상태바, 네비게이션 바) 영역만큼 패딩 적용
+        ViewCompat.setOnApplyWindowInsetsListener(binding.container, (view, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
 
         binding.adView.loadAd(new AdRequest.Builder().build());
 
