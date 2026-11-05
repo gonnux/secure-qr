@@ -8,6 +8,7 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -90,7 +91,14 @@ public class EditorFragment extends Fragment {
             String text = binding.outputDataText.getText().toString();
             if (!text.isEmpty()) {
                 ClipboardManager clipboard = (ClipboardManager) requireActivity().getSystemService(Context.CLIPBOARD_SERVICE);
-                clipboard.setPrimaryClip(ClipData.newPlainText("SecureQR", text));
+                ClipData clip = ClipData.newPlainText("SecureQR", text);
+                if (Boolean.TRUE.equals(editorViewModel.getSecureQrMode().getValue())) {
+                    // Android 13+ 클립보드 미리보기에 복호화한 평문이 뜨지 않게 한다. 이전 버전은 이 extra 를 무시한다.
+                    PersistableBundle extras = new PersistableBundle();
+                    extras.putBoolean("android.content.extra.IS_SENSITIVE", true);
+                    clip.getDescription().setExtras(extras);
+                }
+                clipboard.setPrimaryClip(clip);
                 Toast.makeText(requireActivity(), "Copied to clipboard", Toast.LENGTH_SHORT).show();
             }
         });
