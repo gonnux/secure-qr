@@ -73,7 +73,7 @@
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <EditText
-                android:id="@+id/qrCodeDataEdit"
+                android:id="@+id/inputDataEdit"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:autoLink="all"
@@ -84,15 +84,13 @@
                 android:minHeight="100dp" />
 
             <TextView
-                android:id="@+id/encodedQrCodeDataText"
+                android:id="@+id/outputDataText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:autoLink="all"
                 android:ems="10"
                 android:gravity="start|top"
                 android:hint="@string/encoded_qr_code_data"
-                android:minHeight="100dp"
-                android:textIsSelectable="true" />
+                android:minHeight="100dp" />
 
             <Button
                 android:id="@+id/encodeQrButton"

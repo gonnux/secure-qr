@@ -26,6 +26,9 @@ public class CipherText {
     }
 
     public static CipherText decode(String encoded) {
+        if (encoded == null)
+            throw new IllegalArgumentException("Invalid CipherText Input");
+
         String[] pieces = encoded.split("\\.");
 
         if (pieces.length != 4 || !pieces[0].equals("SecureQR"))

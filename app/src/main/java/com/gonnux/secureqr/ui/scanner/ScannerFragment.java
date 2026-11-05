@@ -41,6 +41,8 @@ import com.google.mlkit.vision.common.InputImage;
 import com.gun0912.tedpermission.PermissionListener;
 import com.gun0912.tedpermission.normal.TedPermission;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -162,12 +164,15 @@ public class ScannerFragment extends Fragment {
         try {
             CipherText.decode(data);
             editorViewModel.setSecureQrMode(true);
-            editorViewModel.setData(null);
         } catch (IllegalArgumentException e) {
-            editorViewModel.setData(data);
+            editorViewModel.setSecureQrMode(false);
         }
-        editorViewModel.setEncodedData(data);
-        navController.navigate(R.id.navigation_editor);
+        editorViewModel.setInputData(data);
+        editorViewModel.setOutputData(data);
+        if (Objects.equals(navController.getCurrentDestination().getId(), R.id.navigation_scanner)) {
+            BottomNavigationView navView = requireActivity().findViewById(R.id.nav_view);
+            navView.setSelectedItemId(R.id.navigation_editor);
+        }
     }
 
     private void processImageProxy(ImageProxy imageProxy, BarcodeScanner barcodeScanner) {

@@ -1,5 +1,8 @@
 package com.gonnux.secureqr.ui.editor;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
@@ -25,10 +28,14 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.journeyapps.barcodescanner.BarcodeEncoder;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class EditorFragment extends Fragment {
 
     private EditorViewModel editorViewModel;
     private FragmentEditorBinding binding;
+    private final ExecutorService cryptoExecutor = Executors.newSingleThreadExecutor();
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -41,21 +48,32 @@ public class EditorFragment extends Fragment {
             binding.secureQrModeSwitch.setChecked(mode);
             binding.passwordEdit.setText(null);
             binding.passwordEdit.setEnabled(mode);
-            binding.decodeQrButton.setEnabled(mode);
+            boolean hasPassword = binding.passwordEdit.getText().length() >= 1;
+            binding.encodeQrButton.setEnabled(mode && hasPassword);
+            binding.decodeQrButton.setEnabled(mode && hasPassword);
+            if (!mode) {
+                editorViewModel.setOutputData(binding.inputDataEdit.getText().toString());
+            } else {
+                editorViewModel.setOutputData(null);
+            }
         });
 
-        editorViewModel.getData().observe(getViewLifecycleOwner(), (data) -> {
-            binding.qrCodeDataEdit.setText(data);
+        editorViewModel.getInputData().observe(getViewLifecycleOwner(), (inputData) -> {
+            binding.inputDataEdit.setText(inputData);
         });
 
-        editorViewModel.getEncodedData().observe(getViewLifecycleOwner(), (encodedData) -> {
-            binding.encodedQrCodeDataText.setText(encodedData);
-            try {
-                BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
-                Bitmap bitmap = barcodeEncoder.encodeBitmap(encodedData, BarcodeFormat.QR_CODE, 200, 200);
-                binding.qrCodeImage.setImageBitmap(bitmap);
-            } catch (WriterException e) {
-                Log.e("SecureQR", e.getMessage());
+        editorViewModel.getOutputData().observe(getViewLifecycleOwner(), (outputData) -> {
+            binding.outputDataText.setText(outputData);
+            if (outputData != null && !outputData.isEmpty()) {
+                try {
+                    BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
+                    Bitmap bitmap = barcodeEncoder.encodeBitmap(outputData, BarcodeFormat.QR_CODE, 200, 200);
+                    binding.qrCodeImage.setImageBitmap(bitmap);
+                } catch (WriterException e) {
+                    Log.e("SecureQR", e.getMessage());
+                }
+            } else {
+                binding.qrCodeImage.setImageBitmap(null);
             }
         });
 
@@ -68,8 +86,34 @@ public class EditorFragment extends Fragment {
             startActivity(Intent.createChooser(share,"Share via"));
         });
 
+        binding.outputDataText.setOnClickListener((view) -> {
+            String text = binding.outputDataText.getText().toString();
+            if (!text.isEmpty()) {
+                ClipboardManager clipboard = (ClipboardManager) requireActivity().getSystemService(Context.CLIPBOARD_SERVICE);
+                clipboard.setPrimaryClip(ClipData.newPlainText("SecureQR", text));
+                Toast.makeText(requireActivity(), "Copied to clipboard", Toast.LENGTH_SHORT).show();
+            }
+        });
+
         binding.secureQrModeSwitch.setOnCheckedChangeListener((compoundButton, checked) -> {
             editorViewModel.setSecureQrMode(checked);
+        });
+
+        binding.inputDataEdit.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                if (!editorViewModel.getSecureQrMode().getValue()) {
+                    editorViewModel.setOutputData(editable.toString());
+                }
+            }
         });
 
         binding.passwordEdit.addTextChangedListener(new TextWatcher() {
@@ -85,38 +129,74 @@ public class EditorFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable editable) {
-                binding.encodeQrButton.setEnabled(!editorViewModel.getSecureQrMode().getValue() || editable.length() >= 1);
+                boolean secureMode = editorViewModel.getSecureQrMode().getValue();
+                boolean hasPassword = editable.length() >= 1;
+                binding.encodeQrButton.setEnabled(secureMode && hasPassword);
+                binding.decodeQrButton.setEnabled(secureMode && hasPassword);
             }
         });
 
         binding.encodeQrButton.setOnClickListener((view) -> {
-            String data = binding.qrCodeDataEdit.getText().toString();
-            editorViewModel.setData(data);
+            view.setEnabled(false);
+            binding.decodeQrButton.setEnabled(false);
+            String inputData = binding.inputDataEdit.getText().toString();
 
             if (editorViewModel.getSecureQrMode().getValue()) {
-                try {
-                    String password = binding.passwordEdit.getText().toString();
-                    editorViewModel.setEncodedData(Crypto.encrypt(data, password));
-                } catch (Exception e) {
-                    editorViewModel.setEncodedData(null);
-                    e.printStackTrace();
-                    Toast.makeText(requireActivity(), "Encoding QR code has failed", Toast.LENGTH_SHORT).show();
-                }
+                String password = binding.passwordEdit.getText().toString();
+                cryptoExecutor.execute(() -> {
+                    try {
+                        String result = Crypto.encrypt(inputData, password);
+                        view.post(() -> {
+                            editorViewModel.setOutputData(result);
+                            view.setEnabled(true);
+                            binding.decodeQrButton.setEnabled(true);
+                        });
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        view.post(() -> {
+                            editorViewModel.setOutputData(null);
+                            Toast.makeText(requireActivity(), "Encoding QR code has failed", Toast.LENGTH_SHORT).show();
+                            view.setEnabled(true);
+                            binding.decodeQrButton.setEnabled(true);
+                        });
+                    }
+                });
             } else {
-                editorViewModel.setEncodedData(data);
+                editorViewModel.setOutputData(inputData);
+                view.setEnabled(true);
+                binding.decodeQrButton.setEnabled(true);
             }
         });
 
         binding.decodeQrButton.setOnClickListener((view) -> {
-            String data = editorViewModel.getEncodedData().getValue();
-            String password = binding.passwordEdit.getText().toString();
-            try {
-                editorViewModel.setData(Crypto.decrypt(data, password));
-            } catch (Exception e) {
-                editorViewModel.setData(null);
+            view.setEnabled(false);
+            binding.encodeQrButton.setEnabled(false);
+            String inputData = binding.inputDataEdit.getText().toString();
+            if (inputData.isEmpty()) {
                 Toast.makeText(requireActivity(), "Decoding QR code has failed", Toast.LENGTH_SHORT).show();
-                e.printStackTrace();
+                view.setEnabled(true);
+                binding.encodeQrButton.setEnabled(true);
+                return;
             }
+            String password = binding.passwordEdit.getText().toString();
+            cryptoExecutor.execute(() -> {
+                try {
+                    String result = Crypto.decrypt(inputData, password);
+                    view.post(() -> {
+                        editorViewModel.setOutputData(result);
+                        view.setEnabled(true);
+                        binding.encodeQrButton.setEnabled(true);
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    view.post(() -> {
+                        editorViewModel.setOutputData(null);
+                        Toast.makeText(requireActivity(), "Decoding QR code has failed", Toast.LENGTH_SHORT).show();
+                        view.setEnabled(true);
+                        binding.encodeQrButton.setEnabled(true);
+                    });
+                }
+            });
         });
 
         return root;
@@ -125,6 +205,7 @@ public class EditorFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        cryptoExecutor.shutdownNow();
         binding = null;
     }
 }
