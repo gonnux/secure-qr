@@ -33,7 +33,7 @@ Single-activity app (`MainActivity`) using Jetpack Navigation with bottom naviga
 ## Key Details
 
 - Language: Java (no Kotlin source files)
-- Min SDK: 26, Target SDK: 35, Gradle: 8.9, AGP: 8.7.3
+- Min SDK: 26, Target SDK: 36, Gradle: 8.13, AGP: 8.13.2
 - View binding enabled (no data binding)
 - R8/ProGuard enabled for release builds
 - Google AdMob integrated (banner ad in main activity)
