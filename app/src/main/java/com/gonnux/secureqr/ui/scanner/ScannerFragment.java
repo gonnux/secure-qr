@@ -98,6 +98,9 @@ public class ScannerFragment extends Fragment {
 
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
         cameraProviderFuture.addListener(() -> {
+            // 카메라 준비 전에 다른 탭으로 옮기면 뷰가 먼저 사라진다.
+            if (binding == null)
+                return;
             try {
                 ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
 

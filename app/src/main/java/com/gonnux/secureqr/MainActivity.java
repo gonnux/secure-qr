@@ -1,9 +1,11 @@
 package com.gonnux.secureqr;
 
+import android.content.res.Configuration;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.view.View;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.SystemBarStyle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -18,7 +20,6 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.initialization.InitializationStatus;
 import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -26,8 +27,12 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Edge-to-edge 표시 활성화 (Android 15+ 하위 호환)
-        EdgeToEdge.enable(this);
+        // 상태바 뒤가 Toolbar 색이라 아이콘 밝기를 모드별로 직접 정한다. 밤 모드는 밝은 보라(purple_200) 위라 어두운 아이콘.
+        boolean night = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+        SystemBarStyle statusBar = night
+                ? SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+                : SystemBarStyle.dark(Color.TRANSPARENT);
+        EdgeToEdge.enable(this, statusBar);
         super.onCreate(savedInstanceState);
 
         MobileAds.initialize(this, new OnInitializationCompleteListener() {
@@ -37,17 +42,19 @@ public class MainActivity extends AppCompatActivity {
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        setSupportActionBar(binding.toolbar);
 
-        // 시스템 바(상태바, 네비게이션 바) 영역만큼 패딩 적용
+        // 상태바 inset 은 Toolbar 패딩으로 줘서 상태바 뒤까지 Toolbar 색이 이어지게 한다.
+        // 테마 액션바를 쓰면 edge-to-edge 에서 콘텐츠가 상태바 높이만큼 액션바 밑으로 들어가 광고 배너가 가려졌다.
         ViewCompat.setOnApplyWindowInsetsListener(binding.container, (view, windowInsets) -> {
             Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-            view.setPadding(insets.left, insets.top, insets.right, insets.bottom);
+            view.setPadding(insets.left, 0, insets.right, insets.bottom);
+            binding.toolbar.setPadding(0, insets.top, 0, 0);
             return WindowInsetsCompat.CONSUMED;
         });
 
         binding.adView.loadAd(new AdRequest.Builder().build());
 
-        BottomNavigationView navView = findViewById(R.id.nav_view);
         AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
                 R.id.navigation_scanner, R.id.navigation_editor
         ).build();
