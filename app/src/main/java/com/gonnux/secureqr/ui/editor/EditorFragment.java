@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -79,8 +80,17 @@ public class EditorFragment extends Fragment {
         });
 
         binding.qrCodeImage.setOnClickListener((view) -> {
-            Bitmap image = ((BitmapDrawable) ((ImageView) view).getDrawable()).getBitmap();
+            Drawable drawable = ((ImageView) view).getDrawable();
+            if (!(drawable instanceof BitmapDrawable)) {
+                Toast.makeText(requireActivity(), "No QR code to share", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Bitmap image = ((BitmapDrawable) drawable).getBitmap();
             String imageUri = MediaStore.Images.Media.insertImage(requireActivity().getContentResolver(), image, "SecureQr", "QR Code");
+            if (imageUri == null) {
+                Toast.makeText(requireActivity(), "Sharing QR code has failed", Toast.LENGTH_SHORT).show();
+                return;
+            }
             Intent share = new Intent(Intent.ACTION_SEND);
             share.setType("image/*");
             share.putExtra(Intent.EXTRA_STREAM, Uri.parse(imageUri));
